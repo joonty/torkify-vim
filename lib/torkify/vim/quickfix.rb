@@ -18,7 +18,7 @@ module Torkify::Vim::Quickfix
         []
       end
     rescue => e
-      puts "Couldn't retrieve vim quickfix list: {#{e.class.name}} #{e.message}"
+      Torkify.logger.fatal { "Couldn't retrieve vim quickfix list: {#{e.class.name}} #{e.message}" }
       []
     end
 
@@ -28,7 +28,20 @@ module Torkify::Vim::Quickfix
 
     def set(errors)
       error_strings = errors.map { |e| @stringifier.convert e }
-      @vim.expr("setqflist([#{error_strings.join(",")}])")
+      if error_strings.any?
+        error_strings.each_slice(100).each_with_index do |strings, i|
+          action = i == 0 ? '' : ', "a"'
+          @vim.expr("setqflist([#{strings.join(",")}]#{action})")
+        end
+      else
+        clear
+      end
+    end
+
+    def clear
+      @vim.expr("setqflist([])")
+      @vim.send ':cclose<CR>'
+      self
     end
 
     def open
