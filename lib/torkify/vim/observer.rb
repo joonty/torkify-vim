@@ -7,22 +7,37 @@ module Torkify::Vim
     attr_reader :quickfix, :split_errors, :split_error_threshold, :me
 
     def initialize(options = {})
-      vim = if options[:server]
-        Remote.new(options[:server])
-      else
-        Remote.from_first_server
-      end
-
+      @vimserver = options[:server]
       @me = "vim-torkify"
 
       @split_errors = !!options[:split_errors]
       @split_error_threshold = options.fetch(:split_error_threshold, 30).to_i
 
-      @quickfix = Quickfix::API.new(vim)
+      detect_server! true
+    end
+
+    def detect_server!(first_time = false)
+      @quickfix ||= begin
+        vim = if @vimserver
+          Remote.new(@vimserver)
+        else
+          Remote.from_first_server
+        end
+        puts "Found vim server, #{vim}"
+        Quickfix::API.new(vim)
+      rescue RemoteError => e
+        Torkify.logger.error { "#{me}: #{e}" } if first_time
+        nil
+      end
+    end
+
+    def on_idle(event)
+      detect_server!
+      self
     end
 
     def on_absorb(event)
-      quickfix.clear
+      quickfix.clear if quickfix
       self
     end
 
@@ -37,6 +52,7 @@ module Torkify::Vim
     end
 
     def on_pass_or_fail(event)
+      return unless quickfix
       populator = Quickfix::Populator.new(quickfix)
       populator.exclude File.basename(event.log_file.chomp('.log'))
 

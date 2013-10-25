@@ -61,24 +61,37 @@ module Torkify::Vim::Quickfix
     end
 
     def exclude(file)
-      bufnum = @api.buffer_from_file(file)
-      if bufnum > 0 && !@excluded_buffers.include?(bufnum)
-        @excluded_buffers << bufnum
+      if file.length > 0
+        bufnum = @api.buffer_from_file(file)
+        if bufnum > 0 && !@excluded_buffers.include?(bufnum)
+          @excluded_buffers << bufnum
+        end
       end
       self
     end
 
     def populate(errors)
       determine_excluded_buffers errors
-      kept_errors = exclude_errors api.get
+      existing = api.get
+
+      kept_errors = exclude_errors existing
       all_errors = kept_errors + errors
       @errors_populated = all_errors.length
-      api.set kept_errors + errors
+
+      if error_list_changed?(existing, all_errors)
+        api.set kept_errors + errors
+      end
       self
     end
 
   protected
     attr_reader :api, :excluded_buffers
+
+    def error_list_changed?(existing, new)
+        existing_msgs = existing.map { |e| e['text'] }.sort
+        new_msgs = new.map { |e| e['text'] }.sort
+        existing_msgs != new_msgs
+    end
 
     def determine_excluded_buffers(errors)
       unique_file_errors = errors.uniq { |e| e['filename'] }
@@ -87,7 +100,7 @@ module Torkify::Vim::Quickfix
 
     def exclude_errors(errors)
       if errors && errors.any?
-        errors.keep_if { |e|
+        errors.dup.keep_if { |e|
           e['type'] == 'E' && !excluded_buffers.include?(e['bufnr'].to_i)
         }
       else

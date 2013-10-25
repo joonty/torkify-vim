@@ -3,7 +3,7 @@ require 'torkify/log/test_error'
 
 module Torkify::Vim
   class ErrorSplitter
-    def delimiter
+    def self.delimiter
       "================"
     end
 
@@ -14,7 +14,10 @@ module Torkify::Vim
                                     error.lnum,
                                     text,
                                     error.type)
-      } << Torkify::Log::TestError.new("", "", delimiter, "")
+      } << Torkify::Log::TestError.new(error.filename,
+                                       error.lnum,
+                                       self.class.delimiter,
+                                       error.type)
     end
   end
 end
