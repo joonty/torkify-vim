@@ -19,6 +19,7 @@ module Torkify::Vim
     end
 
     def initialize(servername)
+      Torkify.logger.debug { "[vim] using remote vim server #{servername}" }
       @servername = servername
       ping
     end
@@ -36,12 +37,13 @@ module Torkify::Vim
       cmd = "vim --servername #{@servername}"
       cmd << " --remote-#{remote_command}"
       cmd << " #{Shellwords.escape(argument)} 2>&1"
-      puts cmd
+      Torkify.logger.debug { "[vim] sending remote command: #{cmd}" }
       parse_output(`#{cmd}`)
     end
 
     def parse_output(output)
       output = output.strip
+      Torkify.logger.debug { "[vim] output from command: #{output}" }
       if output =~ /^E\d+:/
         raise RemoteError, output
       else

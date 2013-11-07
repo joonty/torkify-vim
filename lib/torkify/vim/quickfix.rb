@@ -9,7 +9,7 @@ module Torkify::Vim::Quickfix
 
     def get
       existing = "[" + @vim.expr('getqflist()').gsub(/(?<=})\n(?={)/, ",") + "]"
-      qflist = existing.gsub('"', '\"')
+      qflist = existing.gsub(/(?<=[^\\])"/, '\"')
                        .gsub("'", '"')
                        .gsub("\n", '\n')
       if qflist.length > 0
