@@ -61,7 +61,7 @@ module Torkify::Vim::Quickfix
     end
 
     def exclude(file)
-      if file.length > 0
+      if file && file.length > 0
         bufnum = @api.buffer_from_file(file)
         if bufnum > 0 && !@excluded_buffers.include?(bufnum)
           @excluded_buffers << bufnum
